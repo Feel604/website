@@ -1,177 +1,258 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Pentest Practice — Vulnerable Static Site</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>WebApp Secure Tips — Learn & Practice</title>
   <style>
-    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:24px;line-height:1.4}
-    header{display:flex;gap:16px;align-items:center}
-    main{margin-top:18px}
-    nav a{margin-right:12px}
-    .box{border:1px solid #ddd;padding:12px;border-radius:8px;margin:12px 0}
-    input,button,textarea{font-size:14px;padding:8px;margin:6px 0}
-    .badge{background:#eee;padding:4px 8px;border-radius:6px;font-size:12px}
-    pre{background:#f7f7f7;padding:12px;border-radius:6px;overflow:auto}
+    :root{--bg:#0f1724;--card:#0b1220;--muted:#9aa7bf;--accent:#06b6d4;--glass:rgba(255,255,255,0.04)}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;color:#e6eef6;background:linear-gradient(180deg,#071024 0%, #08172a 60%);min-height:100vh}
+    header{display:flex;align-items:center;justify-content:space-between;padding:20px 28px;border-bottom:1px solid rgba(255,255,255,0.03)}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#7c3aed);display:flex;align-items:center;justify-content:center;color:#012;font-weight:700}
+    h1{margin:0;font-size:20px}
+    .tag{color:var(--muted);font-size:13px}
+
+    main{display:grid;grid-template-columns:1fr 420px;gap:28px;padding:28px;align-items:start}
+    .hero{padding:28px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border-radius:14px;border:1px solid rgba(255,255,255,0.03)}
+    .hero h2{margin-top:0;font-size:28px}
+    .hero p{color:var(--muted)}
+
+    .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:18px}
+    .card{background:var(--card);padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.02)}
+    .card h3{margin:0 0 8px 0}
+    .badge{display:inline-block;padding:6px 10px;border-radius:999px;background:var(--glass);color:var(--muted);font-size:12px}
+
+    aside{position:sticky;top:20px}
+    .panel{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:18px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+
+    label{display:block;font-size:13px;color:var(--muted);margin-top:8px}
+    input[type='email']{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:#fff}
+    button{cursor:pointer;padding:10px 12px;border-radius:10px;border:0;background:linear-gradient(90deg,var(--accent),#7c3aed);color:#022;font-weight:700}
+    .small{font-size:13px;color:var(--muted)}
+
+    .tips-list{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+    .tip{padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.02)}
+    .tip h4{margin:0 0 6px 0}
+    .tip p{margin:0;color:var(--muted);font-size:14px}
+
+    .quiz{margin-top:14px}
+    .q{padding:12px;background:rgba(0,0,0,0.25);border-radius:8px;margin-bottom:8px}
+
+    footer{padding:18px 28px;color:var(--muted);font-size:13px}
+
+    /* responsive */
+    @media (max-width:980px){main{grid-template-columns:1fr;padding:18px}.brand h1{font-size:16px}}
+
+    /* subtle animations */
+    .logo{transition:transform .3s ease}
+    .logo:hover{transform:rotate(-6deg) scale(1.03)}
+    .tip:hover{transform:translateY(-4px);transition:transform .18s ease}
   </style>
 </head>
 <body>
   <header>
-    <h1>Pentest Practice — Vulnerable Static Site</h1>
-    <div class="badge">For learning only — do not host sensitive data</div>
+    <div class="brand">
+      <div class="logo">W</div>
+      <div>
+        <h1>WebApp Secure Tips</h1>
+        <div class="tag">Quick, practical tips & a safe practice playground</div>
+      </div>
+    </div>
+    <div class="actions small">
+      <span id="subscriber-count">0</span> subscribers · <button id="reset-btn" style="background:transparent;color:var(--muted);padding:8px;border-radius:8px">Reset</button>
+    </div>
   </header>
 
-  <p>This single-file static site intentionally includes insecure client-side patterns you can use to practice DOM/Reflected XSS, insecure storage, insecure eval, and weak client-side auth flows. <strong>Do not</strong> publish this on a production server with any sensitive data.</p>
-
-  <nav>
-    <a href="#search">Search (DOM XSS)</a>
-    <a href="#reflect">Reflected (query param) XSS</a>
-    <a href="#login">Login (insecure client auth)</a>
-    <a href="#eval">Insecure Eval</a>
-    <a href="#notes">Notes</a>
-  </nav>
-
   <main>
-    <section id="search" class="box">
-      <h2>Search (DOM XSS)</h2>
-      <p>Type something and click <em>Search</em>. The app intentionally inserts user input as HTML into the page.</p>
-      <label>Query: <input id="search-q" placeholder="try &lt;img src=x onerror=alert(1)>&quot;"></label>
-      <button id="search-btn">Search</button>
-      <div id="search-results" style="margin-top:10px"></div>
-    </section>
+    <section class="hero">
+      <h2>Learn web app security fundamentals — interactively</h2>
+      <p>Browse short tips, sign up with your email (stored locally for demo), and try a tiny client-side quiz to test your knowledge. This is a static, safe playground — for real labs use OWASP Juice Shop or DVWA in an isolated environment.</p>
 
-    <section id="reflect" class="box">
-      <h2>Reflected XSS via URL param</h2>
-      <p>Pass a <code>?q=...</code> parameter in the URL and the page will reflect it unsafely into the DOM when you click <em>Reflect now</em>. This simulates a naive server that reflects query parameters (but implemented client-side here for convenience).</p>
-      <button id="reflect-btn">Reflect now</button>
-      <div id="reflect-output" style="margin-top:10px"></div>
-    </section>
+      <div class="cards">
+        <div class="card">
+          <h3>Top quick tips</h3>
+          <div class="badge">Essentials</div>
+          <div class="tips-list" id="top-tips">
+            <!-- tips inserted by JS -->
+          </div>
+        </div>
 
-    <section id="login" class="box">
-      <h2>Insecure Login (client-side auth)</h2>
-      <p>This form checks credentials purely in the browser and stores a plaintext "session token" in <code>localStorage</code>. This simulates broken auth flows where secrets are stored client-side.</p>
-      <div>
-        <label>Username: <input id="u-username" value="admin"></label><br>
-        <label>Password: <input id="u-password" type="password" value="password"></label><br>
-        <button id="login-btn">Login</button>
-        <button id="logout-btn">Logout</button>
+        <div class="card">
+          <h3>Try a micro-quiz</h3>
+          <div class="quiz" id="quiz">
+            <!-- quiz injected by JS -->
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Try the practice sandbox</h3>
+          <p class="small">Open the sandbox to see an intentionally vulnerable example (client-side only) you can inspect and learn from. Changes are local only.</p>
+          <button id="open-sandbox">Open sandbox</button>
+        </div>
+
+        <div class="card">
+          <h3>Resources</h3>
+          <p class="small">OWASP Top 10 · Browser DevTools · Content Security Policy guides</p>
+        </div>
       </div>
-      <div id="auth-status" style="margin-top:10px"></div>
+    </section>
 
-      <div id="admin-panel" style="display:none;margin-top:12px;padding:8px;background:#fff7f0;border:1px solid #ffd1a8;border-radius:6px">
-        <strong>Admin panel</strong>
-        <p>Secret data: <code id="secret-data">[REDACTED]</code></p>
+    <aside>
+      <div class="panel">
+        <h3>Sign up for tips</h3>
+        <p class="small">Enter an email to subscribe (stored in localStorage for demo). No emails are sent.</p>
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="you@example.com" />
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button id="subscribe">Subscribe</button>
+          <button id="view-subs" style="background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.03);">View</button>
+        </div>
+        <div id="sub-msg" class="small" style="margin-top:8px;color:var(--muted)"></div>
+
+        <hr style="margin:12px 0;border-color:rgba(255,255,255,0.02)" />
+        <h4 style="margin:0">Search tips</h4>
+        <input id="search-tips" placeholder="search tips..." style="width:100%;padding:8px;border-radius:8px;margin-top:8px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:#fff">
       </div>
-    </section>
 
-    <section id="eval" class="box">
-      <h2>Insecure Eval</h2>
-      <p>This form demonstrates an obviously insecure use of <code>eval()</code> on user input. Only for controlled lab use.</p>
-      <textarea id="eval-input" rows="4" cols="60" placeholder="e.g. 2+2 or alert('hello')"></textarea><br>
-      <button id="run-eval">Run eval()</button>
-      <div id="eval-output" style="margin-top:10px"></div>
-    </section>
-
-    <section id="notes" class="box">
-      <h2>Notes, safety & cleanup</h2>
-      <ul>
-        <li>Only run this on a local machine or inside an isolated environment.</li>
-        <li>Do not put real credentials, API keys, or personal data into this site.</li>
-        <li>If publishing to GitHub Pages, be prepared to take it down quickly and consider using a throwaway account or repository.</li>
-        <li>This site intentionally contains insecure code for learning — do not use it as a template for real products.</li>
-      </ul>
-    </section>
+      <div style="height:18px"></div>
+      <div class="panel">
+        <h4>About</h4>
+        <p class="small">Small static site to teach secure design choices and let you experiment with safe client-side patterns. Not for production.</p>
+      </div>
+    </aside>
   </main>
 
-  <footer style="margin-top:18px;color:#666;font-size:13px">Created for pentest practice — exercise caution. (No exploit guidance provided.)</footer>
+  <footer>
+    <div style="max-width:900px;margin:0 auto">This demo stores subscriber emails locally in your browser storage. Do not enter real secrets. For full server-side labs use isolated containers or CTF platforms with permission.</div>
+  </footer>
+
+  <!-- Sandbox modal (hidden) and scripts -->
+  <div id="sandbox-modal" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,0.6);align-items:center;justify-content:center;padding:20px">
+    <div style="background:linear-gradient(180deg, #061427, #081728);padding:20px;border-radius:12px;max-width:900px;width:100%;border:1px solid rgba(255,255,255,0.04)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 style="margin:0">Practice Sandbox</h3>
+        <button id="close-sb" style="background:transparent;color:var(--muted);">Close</button>
+      </div>
+      <p class="small">A tiny interactive area demonstrating a few insecure patterns (client-side only). Use this to inspect DOM, test safe XSS payloads that do not exfiltrate data, and learn.</p>
+
+      <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:220px;background:rgba(255,255,255,0.02);padding:12px;border-radius:10px">
+          <h4 style="margin-top:0">DOM reflect</h4>
+          <input id="sb-q" placeholder="try &lt;img src=x onerror=alert('x')>" style="width:100%;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:#fff">
+          <button id="sb-run" style="margin-top:8px">Reflect</button>
+          <div id="sb-out" style="margin-top:8px;color:var(--muted)"></div>
+        </div>
+
+        <div style="flex:1;min-width:220px;background:rgba(255,255,255,0.02);padding:12px;border-radius:10px">
+          <h4 style="margin-top:0">Local storage viewer</h4>
+          <button id="ls-show">Show localStorage</button>
+          <pre id="ls-out" style="max-height:200px;overflow:auto;margin-top:8px;background:#021225;padding:8px;border-radius:8px;color:#9fd8e6"></pre>
+        </div>
+      </div>
+
+    </div>
+  </div>
 
   <script>
-    // ---------- Search (DOM XSS) ----------
-    document.getElementById('search-btn').addEventListener('click', ()=>{
-      const q = document.getElementById('search-q').value || '';
-      // intentionally unsafe insertion
-      const out = document.getElementById('search-results');
-      out.insertAdjacentHTML('beforeend', '<div>Search results for: ' + q + '</div>');
-    });
+    // --- sample tips data ---
+    const TIPS = [
+      {id:1,title:'Validate input server-side',desc:'Always validate and sanitize data on the server, not only in the browser.'},
+      {id:2,title:'Use prepared statements',desc:'Prevent SQL injection by using parameterized queries or ORMs.'},
+      {id:3,title:'Implement CSP',desc:'Content Security Policy helps mitigate XSS by restricting allowed sources.'},
+      {id:4,title:'Hash passwords properly',desc:'Use strong hashing (bcrypt/argon2) with salts and never store plaintext.'},
+      {id:5,title:'Use secure cookies',desc:'Set HttpOnly, Secure, SameSite attributes for session cookies.'},
+      {id:6,title:'Limit error details',desc:'Return minimal error info to clients; log detailed errors server-side.'}
+    ];
 
-    // ---------- Reflected (query param) XSS ----------
-    function reflectQuery(){
-      const params = new URLSearchParams(location.search);
-      const q = params.get('q');
-      const out = document.getElementById('reflect-output');
-      if(q){
-        // intentionally naive reflection
-        out.innerHTML = 'Reflected: ' + q;
-      } else {
-        out.textContent = 'No ?q= parameter in the URL. Try adding ?q=<script>alert(1)</script>'; 
-      }
+    // render tips
+    const tipsRoot = document.getElementById('top-tips');
+    function renderTips(filter=''){
+      tipsRoot.innerHTML='';
+      const q = filter.trim().toLowerCase();
+      TIPS.filter(t=>t.title.toLowerCase().includes(q)||t.desc.toLowerCase().includes(q)).forEach(t=>{
+        const div = document.createElement('div');div.className='tip';
+        div.innerHTML = `<h4>${t.title}</h4><p>${t.desc}</p>`;
+        tipsRoot.appendChild(div);
+      });
     }
-    document.getElementById('reflect-btn').addEventListener('click', reflectQuery);
+    renderTips();
 
-    // reflect on load if param exists
-    if(new URLSearchParams(location.search).has('q')) reflectQuery();
+    // search tips
+    document.getElementById('search-tips').addEventListener('input', (e)=>renderTips(e.target.value));
 
-    // ---------- Insecure login flow ----------
-    const USERS = [{user:'admin', pass:'password', secret:'The launch code is 1234'},{user:'guest', pass:'guest', secret:'guest note'}];
-
-    function updateAuthUI(){
-      const token = localStorage.getItem('pptoken');
-      const status = document.getElementById('auth-status');
-      if(token){
-        status.innerHTML = 'Logged in. Token stored in localStorage: <code>'+token+'</code>';
-        document.getElementById('admin-panel').style.display = 'block';
-        // token here is just username for demo
-        const user = USERS.find(u=>u.user===token);
-        document.getElementById('secret-data').textContent = user ? user.secret : '[no secret]';
-      } else {
-        status.textContent = 'Not logged in.';
-        document.getElementById('admin-panel').style.display = 'none';
-      }
+    // subscribers (localStorage demo)
+    function getSubs(){
+      try{ return JSON.parse(localStorage.getItem('subs')||'[]') }catch(e){return[]}
     }
-    document.getElementById('login-btn').addEventListener('click', ()=>{
-      const user = document.getElementById('u-username').value;
-      const pass = document.getElementById('u-password').value;
-      const found = USERS.find(u=>u.user===user && u.pass===pass);
-      if(found){
-        // insecure: store username as "token" in localStorage
-        localStorage.setItem('pptoken', found.user);
-        updateAuthUI();
-        alert('Logged in as ' + found.user);
-      } else {
-        alert('Bad credentials');
-      }
-    });
-    document.getElementById('logout-btn').addEventListener('click', ()=>{
-      localStorage.removeItem('pptoken');
-      updateAuthUI();
-      alert('Logged out');
-    });
-    updateAuthUI();
+    function setSubs(s){ localStorage.setItem('subs', JSON.stringify(s)); updateSubCount(); }
+    function updateSubCount(){ document.getElementById('subscriber-count').textContent = getSubs().length }
+    updateSubCount();
 
-    // ---------- Insecure eval ----------
-    document.getElementById('run-eval').addEventListener('click', ()=>{
-      const src = document.getElementById('eval-input').value || '';
-      const out = document.getElementById('eval-output');
-      try{
-        // obviously insecure by design
-        const result = eval(src);
-        out.textContent = 'Result: ' + String(result);
-      }catch(e){
-        out.textContent = 'Error: ' + e.message;
-      }
+    document.getElementById('subscribe').addEventListener('click', ()=>{
+      const email = document.getElementById('email').value.trim();
+      const msg = document.getElementById('sub-msg');
+      if(!email || !email.includes('@')){ msg.textContent = 'Please use a valid-looking email.'; return }
+      const subs = getSubs();
+      if(subs.includes(email)){ msg.textContent = 'Already subscribed.'; return }
+      subs.push(email); setSubs(subs);
+      msg.textContent = 'Saved locally — demo only.';
+      document.getElementById('email').value='';
     });
 
-    // ---------- Extra: simple client-side router for anchor links ----------
-    (function(){
-      function scrollToHash(){
-        if(location.hash){
-          const el = document.querySelector(location.hash);
-          if(el) el.scrollIntoView();
-        }
+    document.getElementById('view-subs').addEventListener('click', ()=>{
+      alert('Subscribers (local only):
+' + getSubs().join('
+'));
+    });
+
+    document.getElementById('reset-btn').addEventListener('click', ()=>{ localStorage.removeItem('subs'); updateSubCount(); alert('Local subscribers cleared') });
+
+    // quiz
+    const QUIZ = [
+      {q:'Which header helps mitigate XSS by restricting sources?',choices:['CSP','HSTS','X-Frame-Options'],a:0},
+      {q:'Which attribute keeps cookies inaccessible to JavaScript?',choices:['Secure','HttpOnly','SameSite'],a:1}
+    ];
+    const quizRoot = document.getElementById('quiz');
+    function renderQuiz(){
+      quizRoot.innerHTML='';
+      QUIZ.forEach((item,i)=>{
+        const el = document.createElement('div'); el.className='q';
+        el.innerHTML = `<strong>Q${i+1}:</strong> ${item.q}<div style="margin-top:8px">${item.choices.map((c,ci)=>`<label style=\"display:block;margin-bottom:6px\"><input type=\"radio\" name=\"q${i}\" value=\"${ci}\"> ${c}</label>`).join('')}</div><button data-i=${i} style="margin-top:8px">Submit</button><div class=\"qm\" style=\"margin-top:8px;color:var(--muted)\"></div>`;
+        quizRoot.appendChild(el);
+      });
+    }
+    renderQuiz();
+    quizRoot.addEventListener('click', (e)=>{
+      if(e.target.tagName==='BUTTON'){
+        const i = Number(e.target.dataset.i);
+        const radios = document.querySelectorAll(`[name=q${i}]`);
+        let sel = -1; radios.forEach(r=>{if(r.checked) sel=Number(r.value)});
+        const out = e.target.parentElement.querySelector('.qm');
+        if(sel===-1) { out.textContent='Please choose an answer.'; return }
+        out.textContent = sel===QUIZ[i].a ? 'Correct ✅' : `Incorrect — correct: ${QUIZ[i].choices[QUIZ[i].a]}`;
       }
-      window.addEventListener('hashchange', scrollToHash);
-      setTimeout(scrollToHash,100);
-    })();
+    });
+
+    // sandbox modal handlers
+    document.getElementById('open-sandbox').addEventListener('click', ()=>{ document.getElementById('sandbox-modal').style.display='flex' });
+    document.getElementById('close-sb').addEventListener('click', ()=>{ document.getElementById('sandbox-modal').style.display='none' });
+
+    document.getElementById('sb-run').addEventListener('click', ()=>{
+      const q = document.getElementById('sb-q').value || '';
+      // intentionally unsafe reflection for learning — do NOT exfiltrate data
+      document.getElementById('sb-out').innerHTML = 'Reflected: ' + q;
+    });
+
+    document.getElementById('ls-show').addEventListener('click', ()=>{
+      const all = {...localStorage}; document.getElementById('ls-out').textContent = JSON.stringify(all, null, 2);
+    });
+
+    // localStorage viewer on load
+    document.addEventListener('DOMContentLoaded', ()=>{
+      updateSubCount();
+    });
   </script>
 </body>
 </html>
